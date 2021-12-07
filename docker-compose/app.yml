@@ -1,0 +1,45 @@
+version: '2.4'
+services:
+  postgres:
+    image: postgres:14.1
+    container_name: postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TODOAPP_DB: ${TODOAPP_DB}
+      TODOAPP_USER: ${TODOAPP_DB_USER}
+      TODOAPP_PASSWORD: ${TODOAPP_DB_PASSWORD}
+    expose:
+      - 5432
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: "bash -c 'pg_isready -U ${TODOAPP_DB_USER} -d ${TODOAPP_DB}'"
+      interval: 2s
+      timeout: 30s
+      retries: 100
+      start_period: 0s
+    volumes:
+      - ../docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+  todo-app:
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile
+    container_name: todo-app
+    tty: true
+    links:
+      - postgres
+    depends_on:
+        postgres:
+          condition: service_healthy
+    expose:
+      - 5000
+    ports:
+      - 5000:5000
+    environment:
+      TODOAPP_DB_HOST: "postgres"
+      TODOAPP_DB_PORT: "5432"
+      TODOAPP_DB: ${TODOAPP_DB}
+      TODOAPP_DB_USER: ${TODOAPP_DB_USER}
+      TODOAPP_DB_PASSWORD: ${TODOAPP_DB_PASSWORD}
